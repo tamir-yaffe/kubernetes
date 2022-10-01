@@ -1,18 +1,47 @@
-version: '2'
+version: "3.8"
 
 services:
   openldap:
-    image: bitnami/openldap:2
+    image: osixia/openldap:1.5.0
+    container_name: openldap
     ports:
       - '1389:1389'
       - '1636:1636'
-    environment:
-      - LDAP_ADMIN_USERNAME=admin
-      - LDAP_ADMIN_PASSWORD=1q2w3e4r
-      - LDAP_USERS=user01,user02
-      - LDAP_PASSWORDS=password1,password2
     volumes:
-      - 'openldap_data:/bitnami/openldap'
-volumes:
-  openldap_data:
-    driver: local
+      - ./storage/ldap_db:/var/lib/ldap
+      - ./storage/ldap_config:/etc/ldap/slapd.d
+    environment:
+      - LDAP_ORGANISATION=tamir-dev
+      - LDAP_DOMAIN=ec2-3-74-230-139.eu-central-1.compute.amazonaws.com
+      - LDAP_ADMIN_PASSWORD=admin
+      - LDAP_CONFIG_PASSWORD=1q2w3e4r
+      - LDAP_RFC2307BIS_SCHEMA=true
+      - LDAP_REMOVE_CONFIG_AFTER_SETUP=true
+      - LDAP_TLS_VERIFY_CLIENT=never
+    networks:
+      - openldap
+
+  openldap-ui:
+    image: wheelybird/ldap-user-manager:v1.5
+    container_name: openldap-ui
+    environment:
+      - LDAP_URI=ldap://openldap
+      - LDAP_BASE_DN=dc=example,dc=org
+      - LDAP_REQUIRE_STARTTLS=FALSE
+      - LDAP_ADMINS_GROUP=admins
+      - LDAP_ADMIN_BIND_DN=cn=admin,dc=example,dc=org
+      - LDAP_ADMIN_BIND_PWD=admin
+      - LDAP_IGNORE_CERT_ERRORS=true
+      - NO_HTTPS=TRUE
+      - PASSWORD_HASH=SSHA
+      - SERVER_HOSTNAME=localhost:18080
+    depends_on:
+      - openldap
+    ports:
+      - 3080:80
+    networks:
+      - openldap
+
+networks:
+  openldap:
+    name: openldap
